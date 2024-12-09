@@ -9,6 +9,7 @@ const Booking = require("./models/booking.model");
 const VehicleDetails = require("./models/vehicle.details.model");
 const VehicleDocuments = require("./models/vehicle.documents.model");
 const app = express();
+const port = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
@@ -47,9 +48,6 @@ app.post("/api/signup", async (req, res) => {
       vehicleDetails,
       vehicleDocuments,
     });
-
-    // Save the user to the database
-    await user.save();
 
     // Assign the generated _id to the custom id field
     user.id = user._id.toString(); // MongoDB _id as string
@@ -118,7 +116,6 @@ app.post("/api/bookings/accepted", async (req, res) => {
       isActive: true,
     });
 
-
     res.status(200).json(bookings);
   } catch (error) {
     res.status(500).json({ message: "Server Error" });
@@ -133,7 +130,6 @@ app.get("/api/bookings/available", async (req, res) => {
       isActive: true,
       driverId: null,
     });
-
 
     res.status(200).json(bookings);
   } catch (error) {
@@ -243,49 +239,39 @@ app.put("/api/vehicle/details", async (req, res) => {
   try {
     const { userId, vehicleDetails } = req.body;
 
-    try {
-      // Find the user by userId
-      const user = await User.findById(userId);
-
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      const {
-        model,
-        yearModel,
-        licenseNumber,
-        address,
-        rampOrLiftAvailability,
-        wheelCapacity,
-        otherAccessibilityFeat,
-      } = vehicleDetails;
-
-      const newVehicleDetails = new VehicleDetails({
-        model,
-        yearModel,
-        licenseNumber,
-        address,
-        rampOrLiftAvailability,
-        wheelCapacity,
-        otherAccessibilityFeat,
-      });
-
-      user.vehicleDetails = newVehicleDetails;
-
-      // Save the updated user document
-      await user.save();
-
-      // Return a success response with the updated user
-      res
-        .status(200)
-        .json({ message: "Car details updated successfully", user });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: "Server error", error: error.message });
+    // Find the user by userId
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
     }
+
+    const {
+      model,
+      yearModel,
+      licenseNumber,
+      address,
+      rampOrLiftAvailability,
+      wheelCapacity,
+      otherAccessibilityFeat,
+    } = vehicleDetails;
+    const newVehicleDetails = new VehicleDetails({
+      model,
+      yearModel,
+      licenseNumber,
+      address,
+      rampOrLiftAvailability,
+      wheelCapacity,
+      otherAccessibilityFeat,
+    });
+
+    user.vehicleDetails = newVehicleDetails;
+
+    // Save the updated user document
+    await user.save();
+    res.status(200).json({ message: "Car details updated successfully", user });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error(error);
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 });
 
