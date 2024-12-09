@@ -10,10 +10,6 @@ const VehicleDetails = require("./models/vehicle.details.model");
 const VehicleDocuments = require("./models/vehicle.documents.model");
 const app = express();
 
-app.get("/", (req, res) => {
-  res.send("faefe");
-});
-
 app.use(cors());
 app.use(express.json());
 
@@ -73,7 +69,6 @@ app.post("/api/login", async (req, res) => {
     const user = await User.findOne({ email });
 
     if (!user) {
-      console.log("user: ", email, password, req.body);
       return res.status(400).json({ message: "User not found" });
     }
 
@@ -102,7 +97,6 @@ app.post("/api/booking", async (req, res) => {
   try {
     const user = await User.findById(req.body.customerId);
 
-    console.log("user: ", user);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -115,7 +109,23 @@ app.post("/api/booking", async (req, res) => {
   }
 });
 
-app.get("/api/bookings/in-progress", async (req, res) => {
+app.post("/api/bookings/accepted", async (req, res) => {
+  try {
+    const { driverId } = req.body;
+    // Query the database for bookings with IN-PROGRESS status, active, and no driverId
+    const bookings = await Booking.find({
+      driverId: driverId,
+      isActive: true,
+    });
+
+
+    res.status(200).json(bookings);
+  } catch (error) {
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
+app.get("/api/bookings/available", async (req, res) => {
   try {
     // Query the database for bookings with IN-PROGRESS status, active, and no driverId
     const bookings = await Booking.find({
@@ -124,14 +134,108 @@ app.get("/api/bookings/in-progress", async (req, res) => {
       driverId: null,
     });
 
-    if (bookings.length > 0) {
-      res.status(200).json(bookings);
-    } else {
-      res.status(404).json({ message: "No in-progress bookings available" });
-    }
+
+    res.status(200).json(bookings);
   } catch (error) {
-    console.error("Error fetching bookings:", error);
     res.status(500).json({ message: "Server Error" });
+  }
+});
+
+app.post("/api/booking/user/cancel", async (req, res) => {
+  try {
+    const { bookingId } = req.body; // Assuming the body contains driverId and bookingStatus
+
+    // Find the booking by its _id and update the driverId and bookingStatus
+    const updatedBooking = await Booking.findByIdAndUpdate(
+      bookingId,
+      {
+        driverId: null, // If driverId is provided, it will be updated; otherwise, it will be set to null
+        bookingStatus: "CANCELLED",
+        isActive: false,
+      },
+      { new: true } // To return the updated document
+    );
+
+    if (!updatedBooking) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+    res.status(200).json(updatedBooking);
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+app.post("/api/booking/driver/accept", async (req, res) => {
+  try {
+    const { bookingId, driverId } = req.body; // Assuming the body contains driverId and bookingStatus
+
+    // Find the booking by its _id and update the driverId and bookingStatus
+    const updatedBooking = await Booking.findByIdAndUpdate(
+      bookingId,
+      {
+        driverId: driverId, // If driverId is provided, it will be updated; otherwise, it will be set to null
+        bookingStatus: "PICK-UP",
+      },
+      { new: true } // To return the updated document
+    );
+
+    if (!updatedBooking) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+    res.status(200).json(updatedBooking);
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+app.post("/api/booking/driver/cancel", async (req, res) => {
+  try {
+    const { bookingId, driverId } = req.body; // Assuming the body contains driverId and bookingStatus
+
+    // Find the booking by its _id and update the driverId and bookingStatus
+    const updatedBooking = await Booking.findByIdAndUpdate(
+      bookingId,
+      {
+        driverId: null, // If driverId is provided, it will be updated; otherwise, it will be set to null
+        bookingStatus: "IN-PROGRESS",
+      },
+      { new: true } // To return the updated document
+    );
+
+    if (!updatedBooking) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+    res.status(200).json(updatedBooking);
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+app.post("/api/booking/driver/finish", async (req, res) => {
+  try {
+    const { bookingId, driverId } = req.body; // Assuming the body contains driverId and bookingStatus
+
+    // Find the booking by its _id and update the driverId and bookingStatus
+    const updatedBooking = await Booking.findByIdAndUpdate(
+      bookingId,
+      {
+        bookingStatus: "COMPLETED",
+        isActive: false,
+        dateCompleted: Date.now(),
+      },
+      { new: true } // To return the updated document
+    );
+
+    if (!updatedBooking) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+    res.status(200).json(updatedBooking);
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
   }
 });
 
